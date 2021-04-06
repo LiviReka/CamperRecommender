@@ -28,4 +28,10 @@ feature_dict = {'FACTURA_ID': 'INVOICE_ID', 'FACTURA_POSICION_ID': 'INVOICE_POSI
                 'PAIS_CONTACTO': 'COUNTRY_CONTACT_ID', 'PAIS_CONTACTO_DESC': 'COUNTRY_CONTACT_DESC',
                 'CIUDAD_CONTACTO': 'CITY_CONTACT', 'IDIOMA_CONTACTO': 'LANGUAGE_CONTACT'}
 
-print('hello world')
+
+def preprocess(d):
+    data = d.rename(columns=feature_dict)
+    data['REMOVABLE_SOLE'] = data['REMOVABLE_SOLE'].apply(lambda x: True if x == 'Extraible' else False)
+    return data
+
+data = preprocess(data)
