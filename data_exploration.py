@@ -28,4 +28,51 @@ feature_dict = {'FACTURA_ID': 'INVOICE_ID', 'FACTURA_POSICION_ID': 'INVOICE_POSI
                 'PAIS_CONTACTO': 'COUNTRY_CONTACT_ID', 'PAIS_CONTACTO_DESC': 'COUNTRY_CONTACT_DESC',
                 'CIUDAD_CONTACTO': 'CITY_CONTACT', 'IDIOMA_CONTACTO': 'LANGUAGE_CONTACT'}
 
+data = data.rename(columns=feature_dict)
+
+### Basic Data Exploration
+
+# number of invoices
+plt.title('Total and unique number of Invoice IDs')
+invoice_id_total = len(data.INVOICE_ID)
+invoice_id_unique = len(data.INVOICE_ID.unique())
+plt.bar(x=['total', 'unique'], height=[invoice_id_unique, invoice_id_total])
+plt.show()
+
+# invoice id frequency
+plt.title('Invoice ID Frequencies (log scale)')
+unique_invoice_count = data.INVOICE_ID.value_counts()
+plt.hist(unique_invoice_count)
+plt.yscale('log')
+plt.show()
+
+# invoice position ID check
+print(f'Max Invoice ID Index: {max(data.INVOICE_POSITION_ID)}')
+plt.hist(data.INVOICE_POSITION_ID)
+plt.yscale('log')
+plt.show()
+# TODO:Invoice ID position should be in linde with the occurences of INVOICE IDs?!?!?
+
+# number of total and unique customers
+plt.title('Total and unique number of Customer IDs')
+invoice_id_total = len(data.CUSTOMER_ID)
+invoice_id_unique = len(data.CUSTOMER_ID.unique())
+plt.bar(x=['total', 'unique'], height=[invoice_id_unique, invoice_id_total])
+plt.show()
+
+# customer id frequency
+plt.title('Customer ID Frequencies (log scale)')
+unique_invoice_count = data.CUSTOMER_ID.value_counts()
+plt.hist(unique_invoice_count)
+plt.yscale('log')
+plt.show()
+
+# Missing values
+nan = data.isnull().sum()
+nan_perc = nan/len(data)
+print(nan_perc)
+
+
+
+
 print('hello world')
