@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 data = pd.read_csv('./data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
 
@@ -29,11 +30,17 @@ english_cols = {'FACTURA_ID': 'INVOICE_ID', 'FACTURA_POSICION_ID': 'INVOICE_POSI
                 'PAIS_CONTACTO': 'COUNTRY_CONTACT_ID', 'PAIS_CONTACTO_DESC': 'COUNTRY_CONTACT_DESC',
                 'CIUDAD_CONTACTO': 'CITY_CONTACT', 'IDIOMA_CONTACTO': 'LANGUAGE_CONTACT'}
 
+dropcols = ['INVOICE_MONTH_YEAR', 'ORDER_YEAR', 'ORDER_MONTH', 'SALES_CHANNEL_ID', \
+            'SALES_CHANNEL_DESC', 'AGE_AVAILABLE', 'MATERIAL_ID', 'COUNTRY_CONTACT_DESC']
 
-dropcols = ['INVOICE_MONTH_YEAR', 'ORDER_YEAR','ORDER_MONTH','SALES_CHANNEL_ID',\
-            'SALES_CHANNEL_DESC','AGE_AVAILABLE','MATERIAL_ID','COUNTRY_CONTACT_DESC']
 
-country_dict = {x['NUMERO_DEUDOR_PAIS_ID']:x['NUMERO_DEUDOR_PAIS_DESC'] for x in data[['NUMERO_DEUDOR_PAIS_ID','NUMERO_DEUDOR_PAIS_DESC']].drop_duplicates().to_dict('index').values()}
+# gets most common country for the code
+def country_dict(df, id_field, desc_field):
+    return {x[id_field]: x[desc_field] for x in
+            df.groupby(id_field)[desc_field].apply(lambda x: x.mode()).to_frame().reset_index().to_dict(
+                'index').values()}
+
+
 country_dict
 
 
@@ -56,5 +63,8 @@ def preprocess(d):
 
 if __name__ == '__main__':
     cleandata = preprocess(data)
-    cleandata = cleandata.drop(columns=dropcols)
 
+    country_lookup = country_dict(data, 'PAIS_CONTACTO', 'PAIS_CONTACTO_DESC')
+    country_lookup.update(country_dict(data, 'NUMERO_DEUDOR_PAIS_ID', 'NUMERO_DEUDOR_PAIS_DESC'))
+
+    cleandata = cleandata.drop(columns=dropcols)
