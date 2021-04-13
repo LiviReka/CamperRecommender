@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import re
 
 data = pd.read_csv('./data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
 
@@ -24,7 +25,7 @@ english_cols = {'FACTURA_ID': 'INVOICE_ID', 'FACTURA_POSICION_ID': 'INVOICE_POSI
                 'GENERO_PRODUCTO': 'PRODUCT_GENDER', 'CATEGORIA': 'PRODUCT_CATEGORY', 'TIPOLOGIA': 'PRODUCT_TYPE',
                 'COLOR': 'COLOR_INTERN', 'CONSUMER_COLOR': 'COLOR_EXTERN', 'CREMALLERA': 'ZIPPER', 'CORDONES': 'LACES',
                 'OUTSOLE_SUELA_TIPO': 'SOLE_TYPE', 'OUTSOLE_SUELA_SUBTIPO': 'SOLE_SUBTYPE',
-                'PLANTILLA_EXTRAIBLE': 'REMOVABLE_SOLE', 'CONTACTO_SN': 'CONTACT', 'EDAD_SN': 'AGE_AVAILABLE',
+                'PLANTILLA_EXTRAIBLE': 'REMOVABLE_SOLE', 'CONTACTO_SN': 'PHYSICAL_CONTACT', 'EDAD_SN': 'AGE_AVAILABLE',
                 'GENERO_CONTACTO': 'GENDER_AVAILABLE', 'EDAD_COMPRA': 'AGE_AT_PURCHASE',
                 'EDAD_RANGO_COMPRA': 'AGE_RANGE',
                 'PAIS_CONTACTO': 'COUNTRY_CONTACT_ID', 'PAIS_CONTACTO_DESC': 'COUNTRY_CONTACT_DESC',
@@ -58,7 +59,49 @@ def preprocess(d):
     d_copy.ZIPPER = d_copy.ZIPPER.apply(lambda x: True if x in ('SI', 'YES') else False)
     d_copy.LACES = d_copy.LACES.apply(lambda x: True if x in ('With laces', 'Con cordones') else False)
 
+    product_group_dict = {'Zapatos Adulto': 'Adult Shoes',
+                          'Bolsos': 'Bag',
+                          'Bolsos Cartujano': 'Bag',
+                          'Ropa': 'Clothings',
+                          'Complementos': 'Complements'
+                          }
+    d_copy.PRODUCT_GROUP = d_copy.PRODUCT_GROUP.apply(lambda x: product_group_dict[x] if x in product_group_dict else x)
+
+    color_dict = {'Мульти ассорти': 'Multi - Assorted',
+                  'красный': 'Red',
+                  'розовый': 'Pink',
+                  'желтый': 'Yellow'
+                  }
+    d_copy.COLOR_INTERN = d_copy.COLOR_INTERN.apply(lambda x: color_dict[x] if x in color_dict else x)
+
+    d_copy.PHYSICAL_CONTACT = d_copy.PHYSICAL_CONTACT.apply(lambda x: True if x == 'S' else False)
+
+    d_copy.SEASON_DESC = d_copy.SEASON_DESC.apply(lambda x: "".join(re.split('^\d{2}|\W+', x)))
+
+    d_copy.SOLE_SUBTYPE = d_copy.SOLE_SUBTYPE.apply(
+        lambda x: np.nan if pd.isnull(x) else "".join(re.split('\(.*\)', x)))
+
     return d_copy
+
+
+def get_item_mtx(data):
+    item_fields = ['PRODUCT_ID', 'PRODUCT_GROUP', 'CONCEPT', 'LINE', \
+                   'PRODUCT_GENDER', 'PRODUCT_CATEGORY', 'PRODUCT_TYPE', \
+                   'LACES', 'ZIPPER', 'SOLE_TYPE', 'SOLE_SUBTYPE', 'REMOVABLE_SOLE', 'SEASON_DESC', \
+                   'COLOR_INTERN']
+
+    item_bools = ['LACES', 'ZIPPER', 'REMOVABLE_SOLE']
+
+    item_categoricals = ['PRODUCT_GROUP', 'CONCEPT', 'LINE', 'PRODUCT_GENDER', \
+                         'PRODUCT_CATEGORY', 'PRODUCT_TYPE', 'SOLE_TYPE', \
+                         'SOLE_SUBTYPE', 'SEASON_DESC', 'COLOR_INTERN'
+                         ]
+
+    items_attributes = data[item_fields]
+    onehot_categoricals = pd.get_dummies(items_attributes[item_categoricals])
+    item_mtx_df = pd.concat([items_attributes.PRODUCT_ID, items_attributes[item_bools] * 1, onehot_categoricals],
+                            axis=1)
+    return np.asmatrix(item_mtx_df)
 
 
 if __name__ == '__main__':
@@ -67,4 +110,7 @@ if __name__ == '__main__':
     country_lookup = country_dict(data, 'PAIS_CONTACTO', 'PAIS_CONTACTO_DESC')
     country_lookup.update(country_dict(data, 'NUMERO_DEUDOR_PAIS_ID', 'NUMERO_DEUDOR_PAIS_DESC'))
 
-    cleandata = cleandata.drop(columns=dropcols)
+    # cleandata = cleandata.drop(columns=dropcols)
+
+    item_mtx = get_item_mtx(cleandata)
+    pass
