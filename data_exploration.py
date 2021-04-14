@@ -1,15 +1,8 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 import re
 
 data = pd.read_csv('./data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
-
-print(f'Number of Observations: {len(data)}')
-print(f'Number of Features: {len(data.columns)}')
-print(f'Features: {data.columns}')
-
-print(data.dtypes)
 
 data = pd.read_csv('./data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
 english_cols = {'FACTURA_ID': 'INVOICE_ID', 'FACTURA_POSICION_ID': 'INVOICE_POSITION_ID', 'CUSTOMER_ID': 'CUSTOMER_ID',
@@ -40,9 +33,6 @@ def country_dict(df, id_field, desc_field):
     return {x[id_field]: x[desc_field] for x in
             df.groupby(id_field)[desc_field].apply(lambda x: x.mode()).to_frame().reset_index().to_dict(
                 'index').values()}
-
-
-country_dict
 
 
 def preprocess(d):
@@ -84,8 +74,8 @@ def preprocess(d):
     return d_copy
 
 
-def get_item_mtx(data):
-    item_fields = ['PRODUCT_ID', 'PRODUCT_GROUP', 'CONCEPT', 'LINE', \
+def get_item_mtx(df):
+    item_fields = ['PRODUCT_GROUP', 'CONCEPT', 'LINE', \
                    'PRODUCT_GENDER', 'PRODUCT_CATEGORY', 'PRODUCT_TYPE', \
                    'LACES', 'ZIPPER', 'SOLE_TYPE', 'SOLE_SUBTYPE', 'REMOVABLE_SOLE', 'SEASON_DESC', \
                    'COLOR_INTERN']
@@ -97,11 +87,19 @@ def get_item_mtx(data):
                          'SOLE_SUBTYPE', 'SEASON_DESC', 'COLOR_INTERN'
                          ]
 
-    items_attributes = data[item_fields]
+    items_attributes = df[['PRODUCT_ID'] + item_fields].drop_duplicates().dropna(subset=['PRODUCT_ID'])
+
     onehot_categoricals = pd.get_dummies(items_attributes[item_categoricals])
     item_mtx_df = pd.concat([items_attributes.PRODUCT_ID, items_attributes[item_bools] * 1, onehot_categoricals],
                             axis=1)
-    return np.asmatrix(item_mtx_df)
+    return item_mtx_df
+
+
+def user_mtx_from_item(i_mtx, df):
+    customer_product_lookup = df[['CUSTOMER_ID', 'PRODUCT_ID']].drop_duplicates().dropna(subset=['CUSTOMER_ID'])
+    merged_customer_product = customer_product_lookup.merge(i_mtx, on='PRODUCT_ID')
+    user_mtx_df = merged_customer_product.groupby('CUSTOMER_ID').max().drop(columns=['PRODUCT_ID'])
+    return user_mtx_df
 
 
 if __name__ == '__main__':
@@ -112,5 +110,8 @@ if __name__ == '__main__':
 
     # cleandata = cleandata.drop(columns=dropcols)
 
-    item_mtx = get_item_mtx(cleandata)
-    pass
+    item_df = get_item_mtx(cleandata)
+    item_mtx = np.asmatrix(item_df)
+
+    user_df = user_mtx_from_item(item_df, cleandata)
+    user_mtx = np.asmatrix(user_df)
