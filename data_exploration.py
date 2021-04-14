@@ -110,8 +110,14 @@ if __name__ == '__main__':
 
     # cleandata = cleandata.drop(columns=dropcols)
 
+    print('Item Matrix Done')
     item_df = get_item_mtx(cleandata)
-    item_mtx = np.asmatrix(item_df)
+    # item_mtx = np.asmatrix(item_df)
+    item_df.to_csv("./data/item_m.csv")
 
+    print('User Matrix Done')
     user_df = user_mtx_from_item(item_df, cleandata)
-    user_mtx = np.asmatrix(user_df)
+    # user_mtx = np.asmatrix(user_df)
+    user_df.to_csv("./data/user_m.csv")
+
+    print('hello world')
