@@ -113,7 +113,7 @@ if __name__ == '__main__':
     print('Item Matrix Done')
     item_df = get_item_mtx(cleandata)
     # item_mtx = np.asmatrix(item_df)
-    item_df.to_csv("./data/item_m.csv")
+    item_df.to_csv("./data/item_m.csv", index=False)
 
     print('User Matrix Done')
     user_df = user_mtx_from_item(item_df, cleandata)
