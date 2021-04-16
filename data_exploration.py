@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
+import json
 
 data = pd.read_csv('./data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
 
@@ -24,7 +25,7 @@ english_cols = {'FACTURA_ID': 'INVOICE_ID', 'FACTURA_POSICION_ID': 'INVOICE_POSI
                 'PAIS_CONTACTO': 'COUNTRY_CONTACT_ID', 'PAIS_CONTACTO_DESC': 'COUNTRY_CONTACT_DESC',
                 'CIUDAD_CONTACTO': 'CITY_CONTACT', 'IDIOMA_CONTACTO': 'LANGUAGE_CONTACT'}
 
-dropcols = ['INVOICE_MONTH_YEAR', 'ORDER_YEAR', 'ORDER_MONTH', 'SALES_CHANNEL_ID', \
+dropcols = ['INVOICE_MONTH_YEAR', 'ORDER_YEAR', 'ORDER_MONTH', 'SALES_CHANNEL_ID',
             'SALES_CHANNEL_DESC', 'AGE_AVAILABLE', 'MATERIAL_ID', 'COUNTRY_CONTACT_DESC']
 
 
@@ -75,15 +76,15 @@ def preprocess(d):
 
 
 def get_item_mtx(df):
-    item_fields = ['PRODUCT_GROUP', 'CONCEPT', 'LINE', \
-                   'PRODUCT_GENDER', 'PRODUCT_CATEGORY', 'PRODUCT_TYPE', \
-                   'LACES', 'ZIPPER', 'SOLE_TYPE', 'SOLE_SUBTYPE', 'REMOVABLE_SOLE', 'SEASON_DESC', \
+    item_fields = ['PRODUCT_GROUP', 'CONCEPT', 'LINE',
+                   'PRODUCT_GENDER', 'PRODUCT_CATEGORY', 'PRODUCT_TYPE',
+                   'LACES', 'ZIPPER', 'SOLE_TYPE', 'SOLE_SUBTYPE', 'REMOVABLE_SOLE', 'SEASON_DESC',
                    'COLOR_INTERN']
 
     item_bools = ['LACES', 'ZIPPER', 'REMOVABLE_SOLE']
 
-    item_categoricals = ['PRODUCT_GROUP', 'CONCEPT', 'LINE', 'PRODUCT_GENDER', \
-                         'PRODUCT_CATEGORY', 'PRODUCT_TYPE', 'SOLE_TYPE', \
+    item_categoricals = ['PRODUCT_GROUP', 'CONCEPT', 'LINE', 'PRODUCT_GENDER',
+                         'PRODUCT_CATEGORY', 'PRODUCT_TYPE', 'SOLE_TYPE',
                          'SOLE_SUBTYPE', 'SEASON_DESC', 'COLOR_INTERN'
                          ]
 
@@ -102,22 +103,49 @@ def user_mtx_from_item(i_mtx, df):
     return user_mtx_df
 
 
+def user_invoice_item_dict(clean_df, ):
+    print('Creating Lookup Tables...')
+    customer_invoice_lookup = clean_df[['CUSTOMER_ID', 'INVOICE_ID']].drop_duplicates().dropna(
+        subset=['CUSTOMER_ID'])
+    invoice_product_lookup = clean_df[['INVOICE_ID', 'PRODUCT_ID']].drop_duplicates().dropna(
+        subset=['INVOICE_ID'])
+
+    print('Grouping Data...')
+    invoice_by_customer = customer_invoice_lookup.groupby('CUSTOMER_ID')
+    product_by_invoice = invoice_product_lookup.groupby('INVOICE_ID')
+
+    print('Creating Index Dicts...')
+    invoice_by_customer_dict = {customer: invoices['INVOICE_ID'].values.tolist() for customer, invoices in
+                                invoice_by_customer}
+    product_by_invoice_dict = {invoice: products['PRODUCT_ID'].values.tolist() for invoice, products in
+                               product_by_invoice}
+    return invoice_by_customer_dict, product_by_invoice_dict
+
+
 if __name__ == '__main__':
     cleandata = preprocess(data)
+    cleandata.to_csv("./data/cleandata.csv", index=False)
 
     country_lookup = country_dict(data, 'PAIS_CONTACTO', 'PAIS_CONTACTO_DESC')
     country_lookup.update(country_dict(data, 'NUMERO_DEUDOR_PAIS_ID', 'NUMERO_DEUDOR_PAIS_DESC'))
 
     # cleandata = cleandata.drop(columns=dropcols)
 
-    print('Item Matrix Done')
-    item_df = get_item_mtx(cleandata)
-    # item_mtx = np.asmatrix(item_df)
-    item_df.to_csv("./data/item_m.csv")
+    # print('Item Matrix...')
+    # item_df = get_item_mtx(cleandata)
+    # # item_mtx = np.asmatrix(item_df)
+    # item_df.to_csv("./data/item_m.csv", index=False)
 
-    print('User Matrix Done')
-    user_df = user_mtx_from_item(item_df, cleandata)
-    # user_mtx = np.asmatrix(user_df)
-    user_df.to_csv("./data/user_m.csv")
+    print('User Invoice Item Dict ...')
+    invoice_by_customer_dict, product_by_invoice_dict = user_invoice_item_dict(cleandata)
+    with open("./data/invoice_by_customer_dict.json", "w") as outfile:
+        json.dump(invoice_by_customer_dict, outfile)
+    with open("./data/product_by_invoice_dict.json", "w") as outfile:
+        json.dump(product_by_invoice_dict, outfile)
+
+    # print('User Matrix...')
+    # user_df = user_mtx_from_item(item_df, cleandata)
+    # # user_mtx = np.asmatrix(user_df)
+    # user_df.to_csv("./data/user_m.csv")
 
     print('hello world')
