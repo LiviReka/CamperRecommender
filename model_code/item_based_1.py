@@ -7,39 +7,22 @@ class ItemBased(RecommenderFramework):
     def __init__(self, user_df, item_df, clean_data, user_item_df, user_id, item_id):
         super().__init__(user_df, item_df, clean_data, user_item_df, user_id, item_id)
 
-    def make_recommendation(self, user_id=None, user_profile=None):
+    def make_recommendation(self, n=10, user_id=None, user_profile=None):
         if user_id is not None and user_profile is not None:
             raise Exception('Recommendation must be based on either ID or Profile, but never both!')
         elif user_id is not None:
             user_index = self.user_dict[user_id]
-            print('computing similarities...')
-            # similarities_cos = [self._cosine_dist(self.user_df.iloc[user_index, :], i[1]) for i in
-            #                     self.item_df.iterrows()]
-            # similarities_euc = [self._euclidean_dist(self.user_df.iloc[user_index, :], i[1]) for i in
-            #                     self.item_df.iterrows()]
+            print('Computing similarities based on user id...')
             similarities_count = [self._count_dist(self.user_df.iloc[user_index, :], i[1]) for i in
                                   self.item_df.iterrows()]
         elif user_profile is not None:
-            print('computing similarities...')
-            # similarities_cos = [self._cosine_dist(user_profile, i[1]) for i in
-            #                     self.item_df.iterrows()]
-            # similarities_euc = [self._euclidean_dist(user_profile, i[1]) for i in
-            #                     self.item_df.iterrows()]
-            similarities_count = [self._count_dist(user_profile, i[1]) for i in
-                                  self.item_df.iterrows()]
+            print('Computing similarities based on user profile...')
 
-        # import matplotlib.pyplot as plt
-        # plt.title('Cosin Sim')
-        # plt.hist(similarities_cos)
-        # plt.show()
-        # plt.title('Eucl Sim')
-        # plt.hist(similarities_euc)
-        # plt.show()
-        # plt.title('Count Sim')
-        # plt.hist(similarities_count)
-        # plt.show()
-
-        return []
+            product_ids = list(self.item_dict.keys())
+            similarities_count = [self._count_dist(user_profile, self.item_df.iloc[self.item_dict[prod_id], :])
+                                  for prod_id in product_ids]
+        return pd.DataFrame(data={'product_id': product_ids, 'similarities': similarities_count}
+                            ).sort_values(by=['similarities'], ascending=False).iloc[:n, :]
 
 
 if __name__ == '__main__':

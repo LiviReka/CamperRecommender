@@ -42,8 +42,10 @@ class RecommenderFramework:
     def eval(self, invoice_by_customer_dict, product_by_invoice_dict):
         """Evaluate Recommendations based on validation set"""
         n = 1000  # number of evaluation iterations
+        correctness = []
 
-        for i in range(n):
+        for count, i in enumerate(range(n)):
+            print(f'Validation Progress: {count/n}')
             # choose random user id to test on
             check_user_id = random.choice(list(invoice_by_customer_dict.keys()))
 
@@ -68,9 +70,14 @@ class RecommenderFramework:
             user_profile = item_attributes.max().drop(columns=['PRODUCT_ID'])
 
             # compare to prediction
-            self.make_recommendation(user_profile=user_profile)
-            # TODO: Make sure that recommendations are attributable to product IDs
+            recommendations = self.make_recommendation(n=10, user_profile=user_profile)
 
+            if check_product_id in recommendations['product_id'].values:
+                correctness.append(1)
+            else:
+                correctness.append(0)
+            print(f'{np.sum(correctness) / len(correctness) * 100}%')
+        print(f'Accuracy: {np.sum(correctness)/len(correctness)*100}%')
         return
 
     def predict(self):
