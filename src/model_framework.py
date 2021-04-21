@@ -4,9 +4,9 @@ import random
 
 
 class RecommenderFramework:
-    def __init__(self, user_df, item_df, user_item_df, user_id, item_id, min_item_n, min_trans_n,
+    def __init__(self, user_df, item_df, user_id, item_id, min_item_n, min_trans_n,
                  inv_by_cust_dict, prod_by_inv_dict):
-        self.user_df, self.item_df, self.user_item_df = user_df, item_df, user_item_df  # user, item & user-item matrix
+        self.user_df, self.item_df = user_df, item_df  # user, item & user-item matrix
         self.user_id, self.item_id = user_id, item_id  # columns that contains user & item identifiers
         self.min_item_n, self.min_trans_n = min_item_n, min_trans_n  # define the min# of trans and items to keep user
         self.inv_by_cust_dict, self.prod_by_inv_dict = inv_by_cust_dict, prod_by_inv_dict
@@ -38,7 +38,7 @@ class RecommenderFramework:
         """Custom Similarity Measure that directly compares 0/1 matches of vectors"""
         return np.round(sum(u * v) / ((len(u) == len(v))*len(u)), 4)
 
-    def eval(self, invoice_by_customer_dict, product_by_invoice_dict):
+    def eval(self):
         """Evaluate Recommendations based on validation set"""
         n = 1000  # number of evaluation iterations
         correctness = []
@@ -49,13 +49,13 @@ class RecommenderFramework:
             check_user_id = random.choice(list(self.user_dict.keys()))
 
             # random chose invoice that is attributed to user
-            check_invoice_id = random.choice(invoice_by_customer_dict[check_user_id])
+            check_invoice_id = random.choice(self.inv_by_cust_dict[check_user_id])
 
             # random chose product that the user purchased
-            check_product_id = random.choice(product_by_invoice_dict[str(check_invoice_id)])
+            check_product_id = random.choice(self.prod_by_inv_dict[str(check_invoice_id)])
 
             # get all other product ids that the user purchased
-            prod_id_list = [product_by_invoice_dict[str(i)] for i in invoice_by_customer_dict[check_user_id]]
+            prod_id_list = [self.prod_by_inv_dict[str(i)] for i in self.inv_by_cust_dict[check_user_id]]
             prod_id_list = list(np.concatenate(prod_id_list).flat)
             prod_id_list.remove(check_product_id)
 

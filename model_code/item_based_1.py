@@ -4,12 +4,13 @@ import json
 
 
 class ItemBased(RecommenderFramework):
-    def __init__(self, user_df, item_df, user_item_df, user_id, item_id, min_item_n, min_trans_n,
+    def __init__(self, user_df, item_df, user_id, item_id, min_item_n, min_trans_n,
                  inv_by_cust_dict, prod_by_inv_dict):
-        super().__init__(user_df, item_df, user_item_df, user_id, item_id, min_item_n, min_trans_n,
+        super().__init__(user_df, item_df, user_id, item_id, min_item_n, min_trans_n,
                          inv_by_cust_dict, prod_by_inv_dict)
 
     def make_recommendation(self, n=10, user_id=None, user_profile=None):
+        """make recommendation based on user-id or user profile as passed"""
         product_ids, similarities_count = None, None
         if user_id is not None and user_profile is not None:
             raise Exception('Recommendation must be based on either ID or Profile, but never both!')
@@ -39,10 +40,8 @@ if __name__ == '__main__':
     with open('../data/product_by_invoice_dict.json') as json_file:
         product_by_invoice_dict = json.load(json_file)
 
-    rec = ItemBased(user_df=user_m, item_df=item_m, user_item_df=None,
-                    user_id='CUSTOMER_ID', item_id='PRODUCT_ID', min_trans_n=2, min_item_n=5,
-                    inv_by_cust_dict=invoice_by_customer_dict, prod_by_inv_dict=product_by_invoice_dict)
-
-    rec.eval(invoice_by_customer_dict, product_by_invoice_dict)
+    rec = ItemBased(user_df=user_m, item_df=item_m, user_id='CUSTOMER_ID', item_id='PRODUCT_ID', min_trans_n=2,
+                    min_item_n=5, inv_by_cust_dict=invoice_by_customer_dict, prod_by_inv_dict=product_by_invoice_dict)
+    rec.eval()
 
     print('hello world')
