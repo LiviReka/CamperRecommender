@@ -88,9 +88,8 @@ class RecommenderFramework:
         for user in users:
             items_per_user = []
             for inv in self.inv_by_cust_dict[user]:
-                items_per_user += self.inv_by_cust_dict[str(inv)]
+                items_per_user += self.pro_by_inv_dict[str(inv)]
             if len(items_per_user) < self.min_item_n:
                 users.remove(user)
         print(f'{len(users)/len(self.inv_by_cust_dict.keys())*100}% of all users.')
-        users_indices = [self.user_dict[str(u)] for u in users]
-        self.user_df = self.user_df.iloc[users_indices, :]
+        self.user_df = self.user_df[self.user_df[self.user_id].isin(users)]
