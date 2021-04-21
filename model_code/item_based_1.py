@@ -11,18 +11,16 @@ class ItemBased(RecommenderFramework):
 
     def make_recommendation(self, n=10, user_id=None, user_profile=None):
         """make recommendation based on user-id or user profile as passed"""
-        product_ids, similarities_count = None, None
+        product_ids, similarities_count = list(self.item_dict.keys()), None
         if user_id is not None and user_profile is not None:
             raise Exception('Recommendation must be based on either ID or Profile, but never both!')
         elif user_id is not None:
             user_index = self.user_dict[user_id]
             print('Computing similarities based on user id...')
-            product_ids = list(self.item_dict.keys())
             similarities_count = [self._count_dist(self.user_df.iloc[user_index, :], i[1]) for i in
                                   self.item_df.iterrows()]
         elif user_profile is not None:
             print('Computing similarities based on user profile...')
-            product_ids = list(self.item_dict.keys())
             similarities_count = [self._count_dist(user_profile, self.item_df.iloc[self.item_dict[prod_id], :])
                                   for prod_id in product_ids]
         return pd.DataFrame(data={'product_id': product_ids, 'similarities': similarities_count}

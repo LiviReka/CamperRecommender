@@ -9,14 +9,18 @@ class RecommenderFramework:
         self.user_df, self.item_df = user_df, item_df  # user, item & user-item matrix
         self.user_id, self.item_id = user_id, item_id  # columns that contains user & item identifiers
         self.min_item_n, self.min_trans_n = min_item_n, min_trans_n  # define the min# of trans and items to keep user
+
+        # index for cust, inv & prod (containing all users and item, also if excluded for learning, info is filtered
+        # respectively in self._identifiers())
         self.inv_by_cust_dict, self.prod_by_inv_dict = inv_by_cust_dict, prod_by_inv_dict
 
-        self._select_users()
-        self._identifiers()
+        self._select_users()  # calling user selection based on conditions
+        self._identifiers()  # calling user identifier init
 
     def _identifiers(self):
         """Create Identifier dicts for users & items to respective rows"""
-        # dict to index user identifier & row
+        print('Customer Identifiers...')
+        # dict to index user identifier & row (this dict contains ONLY the users & items considered for the learning)
         self.user_dict, self.item_dict = {i: count for count, i in enumerate(self.user_df[self.user_id])},\
                                          {i: count for count, i in enumerate(self.item_df[self.item_id])}
         # drop identifier columns from original matrices
@@ -79,6 +83,7 @@ class RecommenderFramework:
 
     def _select_users(self):
         """Filter Users for number of products and invoices as specified"""
+        print('Customer Filtering...')
         # filter users by minimum number of invoices in db using cust -> inv dict
         users = [user for user in self.inv_by_cust_dict if
                  len(self.inv_by_cust_dict[user]) >= self.min_trans_n]
