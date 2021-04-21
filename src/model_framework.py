@@ -4,11 +4,14 @@ import random
 
 
 class RecommenderFramework:
-    def __init__(self, user_df, item_df, clean_data, user_item_df, user_id, item_id):
+    def __init__(self, user_df, item_df, clean_data, user_item_df, user_id, item_id, min_item_n, min_trans_n, invoice_by_customer_dict, product_by_invoice_dict):
         self.user_df, self.item_df, self.user_item_df = user_df, item_df, user_item_df  # user, item & user-item matrix
         self.clean_df = clean_data
         self.user_id, self.item_id = user_id, item_id  # columns that contains user & item identifiers
+        self.min_item_n, self.min_trans_n = min_item_n, min_trans_n  # define the min# of trans and items to keep user
+        self.inv_by_cust_dict, self.pro_by_inv_dict = invoice_by_customer_dict, product_by_invoice_dict
 
+        self._select_users()
         self._identifiers()
 
     def _identifiers(self):
@@ -35,10 +38,6 @@ class RecommenderFramework:
         """Custom Similarity Measure that directly compares 0/1 matches of vectors"""
         return np.round(sum(u * v) / ((len(u) == len(v))*len(u)), 4)
 
-    def _train_test_split(self):
-        """Separate User-Item-Matrix in train test split"""
-        return
-
     def eval(self, invoice_by_customer_dict, product_by_invoice_dict):
         """Evaluate Recommendations based on validation set"""
         n = 1000  # number of evaluation iterations
@@ -47,7 +46,7 @@ class RecommenderFramework:
         for count, i in enumerate(range(n)):
             print(f'Validation Progress: {count/n}')
             # choose random user id to test on
-            check_user_id = random.choice(list(invoice_by_customer_dict.keys()))
+            check_user_id = random.choice(list(self.user_dict.keys()))
 
             # random chose invoice that is attributed to user
             check_invoice_id = random.choice(invoice_by_customer_dict[check_user_id])
@@ -80,15 +79,17 @@ class RecommenderFramework:
         print(f'Accuracy: {np.sum(correctness)/len(correctness)*100}%')
         return
 
-    def predict(self):
-        """Make Recommendation for a given"""
-        return
-
-
-# class ItemBased(RecommenderFramework):
-#     def __init__(self, user_path, item_path, user_item_path):
-#         super().__init__(user_path, item_path, user_item_path)
-#
-#     def fit_recommender(self):
-#
-#         return
+    def _select_users(self):
+        """Filter Users for number of products and invoices as specified"""
+        print(self.min_trans_n)
+        if self.min_trans_n is not None:
+            users = [user for user in self.inv_by_cust_dict if
+                     len(self.inv_by_cust_dict[user]) >= self.min_trans_n]
+        for user in users:
+            items_per_user = []
+            for inv in self.inv_by_cust_dict[user]:
+                items_per_user += self.pro_by_inv_dict[str(inv)]
+            if len(items_per_user) < self.min_item_n:
+                users.remove(user)
+        print(f'{len(users)/len(self.inv_by_cust_dict.keys())*100}% of all users.')
+        self.user_df = self.user_df[self.user_df[self.user_id].isin(users)]
