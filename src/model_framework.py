@@ -4,12 +4,12 @@ import random
 
 
 class RecommenderFramework:
-    def __init__(self, user_df, item_df, clean_data, user_item_df, user_id, item_id, min_item_n, min_trans_n, invoice_by_customer_dict, product_by_invoice_dict):
+    def __init__(self, user_df, item_df, user_item_df, user_id, item_id, min_item_n, min_trans_n,
+                 inv_by_cust_dict, prod_by_inv_dict):
         self.user_df, self.item_df, self.user_item_df = user_df, item_df, user_item_df  # user, item & user-item matrix
-        self.clean_df = clean_data
         self.user_id, self.item_id = user_id, item_id  # columns that contains user & item identifiers
         self.min_item_n, self.min_trans_n = min_item_n, min_trans_n  # define the min# of trans and items to keep user
-        self.inv_by_cust_dict, self.pro_by_inv_dict = invoice_by_customer_dict, product_by_invoice_dict
+        self.inv_by_cust_dict, self.prod_by_inv_dict = inv_by_cust_dict, prod_by_inv_dict
 
         self._select_users()
         self._identifiers()
@@ -55,8 +55,6 @@ class RecommenderFramework:
             check_product_id = random.choice(product_by_invoice_dict[str(check_invoice_id)])
 
             # get all other product ids that the user purchased
-            # for invoice in invoice_by_customer_dict[check_user_id]:
-
             prod_id_list = [product_by_invoice_dict[str(i)] for i in invoice_by_customer_dict[check_user_id]]
             prod_id_list = list(np.concatenate(prod_id_list).flat)
             prod_id_list.remove(check_product_id)
@@ -81,15 +79,16 @@ class RecommenderFramework:
 
     def _select_users(self):
         """Filter Users for number of products and invoices as specified"""
-        print(self.min_trans_n)
-        if self.min_trans_n is not None:
-            users = [user for user in self.inv_by_cust_dict if
-                     len(self.inv_by_cust_dict[user]) >= self.min_trans_n]
-        for user in users:
+        # filter users by minimum number of invoices in db using cust -> inv dict
+        users = [user for user in self.inv_by_cust_dict if
+                 len(self.inv_by_cust_dict[user]) >= self.min_trans_n]
+
+        # filter resulting users by number of purchased items
+        for user in users:  # iterate users (already filtered by # invoices)
             items_per_user = []
-            for inv in self.inv_by_cust_dict[user]:
-                items_per_user += self.pro_by_inv_dict[str(inv)]
-            if len(items_per_user) < self.min_item_n:
+            for inv in self.inv_by_cust_dict[user]:  # iterate all invoices per user
+                items_per_user += self.prod_by_inv_dict[str(inv)]  # add all products to list
+            if len(items_per_user) < self.min_item_n:  # filter for condition
                 users.remove(user)
         print(f'{len(users)/len(self.inv_by_cust_dict.keys())*100}% of all users.')
-        self.user_df = self.user_df[self.user_df[self.user_id].isin(users)]
+        self.user_df = self.user_df[self.user_df[self.user_id].isin(users)]  # update users dataframe
