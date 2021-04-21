@@ -1,6 +1,7 @@
 from scipy.spatial import distance
 import numpy as np
 import random
+import pandas as pd
 
 
 class RecommenderFramework:
@@ -81,19 +82,19 @@ class RecommenderFramework:
         print(f'Accuracy: {np.sum(correctness)/len(correctness)*100}%')
         return
 
+    def _user_item_count(self, user):
+        return sum(list(map(lambda x: len(self.prod_by_inv_dict[str(x)]), self.inv_by_cust_dict[user])))
+
     def _select_users(self):
         """Filter Users for number of products and invoices as specified"""
         print('Customer Filtering...')
         # filter users by minimum number of invoices in db using cust -> inv dict
-        users = [user for user in self.inv_by_cust_dict if
+        users = [user for user in self.user_df[self.user_id] if
                  len(self.inv_by_cust_dict[user]) >= self.min_trans_n]
 
-        # filter resulting users by number of purchased items
-        for user in users:  # iterate users (already filtered by # invoices)
-            items_per_user = []
-            for inv in self.inv_by_cust_dict[user]:  # iterate all invoices per user
-                items_per_user += self.prod_by_inv_dict[str(inv)]  # add all products to list
-            if len(items_per_user) < self.min_item_n:  # filter for condition
-                users.remove(user)
-        print(f'{len(users)/len(self.inv_by_cust_dict.keys())*100}% of all users.')
-        self.user_df = self.user_df[self.user_df[self.user_id].isin(users)]  # update users dataframe
+        # filter (already filtered) users by number of purchased products
+        n_items_df = pd.DataFrame({'users': users, 'n_items': list(map(lambda x: self._user_item_count(x), users))})
+        n_items_df = n_items_df[n_items_df['n_items'] >= self.min_item_n]
+
+        print(f'{np.round(len(n_items_df["users"])/len(self.inv_by_cust_dict.keys())*100, 3)}% of all users.')
+        self.user_df = self.user_df[self.user_df[self.user_id].isin(n_items_df['users'])]  # update users dataframe
