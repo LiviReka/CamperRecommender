@@ -4,8 +4,8 @@ import json
 
 
 class ItemBased(RecommenderFramework):
-    def __init__(self, user_df, item_df, clean_data, user_item_df, user_id, item_id):
-        super().__init__(user_df, item_df, clean_data, user_item_df, user_id, item_id)
+    def __init__(self, user_df, item_df, clean_data, user_item_df, user_id, item_id, min_trans_n, min_item_n, invoice_by_customer_dict, product_by_invoice_dict):
+        super().__init__(user_df, item_df, clean_data, user_item_df, user_id, item_id, min_trans_n, min_item_n, invoice_by_customer_dict, product_by_invoice_dict)
 
     def make_recommendation(self, n=10, user_id=None, user_profile=None):
         if user_id is not None and user_profile is not None:
@@ -37,10 +37,11 @@ if __name__ == '__main__':
         product_by_invoice_dict = json.load(json_file)
 
     rec = ItemBased(user_df=user_m, item_df=item_m, clean_data=cleandata_m, user_item_df=None,
-                    user_id='CUSTOMER_ID', item_id='PRODUCT_ID')
+                    user_id='CUSTOMER_ID', item_id='PRODUCT_ID', min_trans_n=2, min_item_n=5,
+                    invoice_by_customer_dict=invoice_by_customer_dict, product_by_invoice_dict=product_by_invoice_dict)
 
     rec.eval(invoice_by_customer_dict, product_by_invoice_dict)
 
-    rec.make_recommendation('+6F9xZ4in/zBbuY9ZysWwnoH0yxqbg7GFSK/9wNk+24=')
+    # rec.make_recommendation('+6F9xZ4in/zBbuY9ZysWwnoH0yxqbg7GFSK/9wNk+24=')
 
     print('hello world')
