@@ -88,8 +88,8 @@ class OneHotData(Data):
                             'PRODUCT_GENDER', 'PRODUCT_CATEGORY', 'PRODUCT_TYPE',
                             'LACES', 'ZIPPER', 'SOLE_TYPE', 'SOLE_SUBTYPE', 'REMOVABLE_SOLE', 'SEASON_DESC',
                             'COLOR_INTERN']
-        self.items_attributes = self.eng_data[['PRODUCT_ID'] + self.item_fields].drop_duplicates().dropna(
-            subset=['PRODUCT_ID'])
+        self.items_attributes = self.eng_data[['PRODUCT_ID'] + self.item_fields].dropna(
+            subset=['PRODUCT_ID']).drop_duplicates()
         self.item_df = self.onehot()
         self.customer_product_lookup = self.eng_data[['CUSTOMER_ID', 'PRODUCT_ID']].drop_duplicates().dropna(
             subset=['CUSTOMER_ID'])
@@ -142,7 +142,7 @@ def user_invoice_item_dict(clean_df, ):
 if __name__ == '__main__':
     infile = pd.read_csv(os.getcwd() + '/../data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
 
-    testdata = infile#.head(200)
+    testdata = infile.head(20000)
 
     cleandata = OneHotData(testdata)
 
