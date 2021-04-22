@@ -154,9 +154,9 @@ if __name__ == '__main__':
     users = cleandata.user_df
     users.to_csv(os.getcwd() + "/../data/user_m.csv")
 
-    # print('User Invoice Item Dict ...')
-    # invoice_by_customer_dict, product_by_invoice_dict = user_invoice_item_dict(cleandata.eng_data)
-    # with open(os.getcwd() + "/../data/invoice_by_customer_dict.json", "w") as outfile:
-    #     json.dump(invoice_by_customer_dict, outfile)
-    # with open(os.getcwd() + "/../data/product_by_invoice_dict.json", "w") as outfile:
-    #     json.dump(product_by_invoice_dict, outfile)
+    print('User Invoice Item Dict ...')
+    invoice_by_customer_dict, product_by_invoice_dict = user_invoice_item_dict(cleandata.eng_data)
+    with open(os.getcwd() + "/../data/invoice_by_customer_dict.json", "w") as outfile:
+        json.dump(invoice_by_customer_dict, outfile)
+    with open(os.getcwd() + "/../data/product_by_invoice_dict.json", "w") as outfile:
+        json.dump(product_by_invoice_dict, outfile)
