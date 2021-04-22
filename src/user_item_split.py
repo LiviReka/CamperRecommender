@@ -84,15 +84,15 @@ class Data:
 class OneHotData(Data):
     def __init__(self, data):
         Data.__init__(self, data)
-        self.item_fields = ['PRODUCT_GROUP', 'CONCEPT', 'LINE',
+        self.item_fields = ['PRODUCT_GROUP', 'CONCEPT',
                             'PRODUCT_GENDER', 'PRODUCT_CATEGORY', 'PRODUCT_TYPE',
-                            'LACES', 'ZIPPER', 'SOLE_TYPE', 'SOLE_SUBTYPE', 'REMOVABLE_SOLE', 'SEASON_DESC',
+                            'LACES', 'ZIPPER', 'SOLE_TYPE', 'SOLE_SUBTYPE', 'REMOVABLE_SOLE',
                             'COLOR_INTERN']
         self.items_attributes = self.eng_data[['PRODUCT_ID'] + self.item_fields].dropna(
             subset=['PRODUCT_ID']).drop_duplicates()
         self.item_df = self.onehot()
-        self.customer_product_lookup = self.eng_data[['CUSTOMER_ID', 'PRODUCT_ID']].drop_duplicates().dropna(
-            subset=['CUSTOMER_ID'])
+        self.customer_product_lookup = self.eng_data[['CUSTOMER_ID', 'PRODUCT_ID']].dropna(
+            subset=['CUSTOMER_ID']).drop_duplicates()
         self.user_df = self.customer_product_lookup.merge(self.item_df, on='PRODUCT_ID').groupby(
             'CUSTOMER_ID').max().drop(columns=['PRODUCT_ID'])
 
@@ -100,12 +100,12 @@ class OneHotData(Data):
         item_bools = ['LACES', 'ZIPPER', 'REMOVABLE_SOLE']
         item_categoricals = ['PRODUCT_GROUP', 'CONCEPT', 'PRODUCT_GENDER',
                              'PRODUCT_CATEGORY', 'PRODUCT_TYPE', 'SOLE_TYPE',
-                             'SOLE_SUBTYPE', 'SEASON_DESC', 'COLOR_INTERN'
+                             'SOLE_SUBTYPE', 'COLOR_INTERN'
                              ]
 
-        onehot_categoricals = pd.get_dummies(self.items_attributes[item_categoricals])
-        return pd.concat([self.items_attributes.PRODUCT_ID, self.items_attributes[item_bools] * 1, onehot_categoricals],
-                         axis=1)
+        encoded = pd.get_dummies(data=self.items_attributes, columns=item_categoricals)
+        encoded[item_bools] = encoded[item_bools] * 1
+        return encoded
 
 
 # generates key : field values for most commonly appearing value for field
@@ -142,7 +142,7 @@ def user_invoice_item_dict(clean_df, ):
 if __name__ == '__main__':
     infile = pd.read_csv(os.getcwd() + '/../data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
 
-    testdata = infile.head(20000)
+    testdata = infile#.head(500000)
 
     cleandata = OneHotData(testdata)
 
@@ -154,9 +154,9 @@ if __name__ == '__main__':
     users = cleandata.user_df
     users.to_csv(os.getcwd() + "/../data/user_m.csv")
 
-    print('User Invoice Item Dict ...')
-    invoice_by_customer_dict, product_by_invoice_dict = user_invoice_item_dict(cleandata.eng_data)
-    with open(os.getcwd() + "/../data/invoice_by_customer_dict.json", "w") as outfile:
-        json.dump(invoice_by_customer_dict, outfile)
-    with open(os.getcwd() + "/../data/product_by_invoice_dict.json", "w") as outfile:
-        json.dump(product_by_invoice_dict, outfile)
+    # print('User Invoice Item Dict ...')
+    # invoice_by_customer_dict, product_by_invoice_dict = user_invoice_item_dict(cleandata.eng_data)
+    # with open(os.getcwd() + "/../data/invoice_by_customer_dict.json", "w") as outfile:
+    #     json.dump(invoice_by_customer_dict, outfile)
+    # with open(os.getcwd() + "/../data/product_by_invoice_dict.json", "w") as outfile:
+    #     json.dump(product_by_invoice_dict, outfile)
