@@ -22,8 +22,8 @@ class RecommenderFramework:
         """Create Identifier dicts for users & items to respective rows"""
         print('Customer Identifiers...')
         # dict to index user identifier & row (this dict contains ONLY the users & items considered for the learning)
-        self.user_dict, self.item_dict = {i: count for count, i in enumerate(self.user_df[self.user_id])},\
-                                         {i: count for count, i in enumerate(self.item_df[self.item_id])}
+        self.user_dict, self.item_dict = {i: count for count, i in enumerate(self.user_df[self.user_id].values)},\
+                                         {i: count for count, i in enumerate(self.item_df[self.item_id].values)}
         # drop identifier columns from original matrices
         self.user_df.drop([self.user_id], axis=1, inplace=True)
         self.item_df.drop([self.item_id], axis=1, inplace=True)
@@ -98,3 +98,17 @@ class RecommenderFramework:
 
         print(f'{np.round(len(n_items_df["users"])/len(self.inv_by_cust_dict.keys())*100, 3)}% of all users.')
         self.user_df = self.user_df[self.user_df[self.user_id].isin(n_items_df['users'])]  # update users dataframe
+
+        # compute user-item dict
+        self.user_item_dict = {}
+        total_items = []
+        for user in self.user_df[self.user_id].values:
+            user_items = []
+            for inv in self.inv_by_cust_dict[user]:
+                user_items += self.prod_by_inv_dict[str(inv)]
+                total_items += self.prod_by_inv_dict[str(inv)]
+            self.user_item_dict[user] = set(user_items)
+        total_items = set(total_items)
+
+        self.item_df = self.item_df[self.item_df[self.item_id].isin(total_items)]  # update users dataframe
+        # TODO: DUPLICATES in item matrix!!!

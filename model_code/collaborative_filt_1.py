@@ -1,6 +1,7 @@
 import pandas as pd
 from src.model_framework import RecommenderFramework
 import json
+import numpy as np
 
 
 class CollFilt(RecommenderFramework):
@@ -18,7 +19,7 @@ class CollFilt(RecommenderFramework):
         """computing relevance score for one user-item pair"""
         # collect all purchased products for the given customer id
         prod_purchased = []
-        for inv in self.inv_by_cust_dict[str(cust_id)]:
+        for inv in self.inv_by_cust_dict[cust_id]:
             prod_purchased += self.prod_by_inv_dict[str(inv)]
         # return 1 or 0 on purchase condition
         if str(prod_id) in prod_purchased:
@@ -26,15 +27,21 @@ class CollFilt(RecommenderFramework):
         elif str(prod_id) not in prod_purchased:
             return 0
 
+    #'//VNwGkmnK8q2RMfoYb0dqUuGJNfP+hNs5117i4DtYw=', 'K200313-009'   - 8 products purchased
     def _user_item_matrix(self):
         """creating user-item-matrix"""
-        product_ids = list(self.item_dict.keys())
+        print('Generating User-Item-Matrix...')
+        user_item_dict = {}
+        for user in self.user_dict.keys():
+            user_items = []
+            for inv in self.inv_by_cust_dict[user]:
+                user_items += self.prod_by_inv_dict[str(inv)]
+            user_item_dict[user] = set(user_items)
 
-        # for cust in self.user_dict.keys():
-        #     [self._user_item_relevance(cust, prod) for prod in product_ids]
+        user_item_matrix = np.zeros(shape=(len(self.user_dict.keys()), len(self.item_dict.keys())))
 
-        self.user_item_m = [[self._user_item_relevance(cust, prod) for prod in product_ids]
-                            for cust in self.user_dict.keys()]
+        ## alternative approach fill 0 matrix with purchased products!!!
+        # per user iterate purchased products and fill respective items with relevance score
 
     def make_recommendation(self, n=10, user_id=None, user_profile=None):
         """make recommendation based on user similarity in the user-item matrix"""
