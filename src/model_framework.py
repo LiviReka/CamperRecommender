@@ -39,9 +39,16 @@ class RecommenderFramework:
         return distance.euclidean(u, v)
 
     @staticmethod
-    def _count_dist(u, v):
+    def _jaccard(u, v):
+        return distance.jaccard(u, v)
+
+    @staticmethod
+    def _count_dist(u, v, norm=True):
         """Custom Similarity Measure that directly compares 0/1 matches of vectors"""
-        return np.round(sum(u * v) / ((len(u) == len(v))*len(u)), 4)
+        if norm:
+            return np.round(sum(u * v) / ((len(u) == len(v))*len(u)), 4)
+        elif not norm:
+            return np.sum(u * v)
 
     def eval(self):
         """Evaluate Recommendations based on validation set"""
@@ -111,4 +118,3 @@ class RecommenderFramework:
         total_items = set(total_items)
 
         self.item_df = self.item_df[self.item_df[self.item_id].isin(total_items)]  # update users dataframe
-        # TODO: DUPLICATES in item matrix!!!
