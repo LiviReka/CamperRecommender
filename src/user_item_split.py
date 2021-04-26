@@ -84,8 +84,7 @@ class Data:
 class OneHotData(Data):
     def __init__(self, data):
         Data.__init__(self, data)
-        self.item_fields = ['PRODUCT_GROUP', 'CONCEPT',
-                            'PRODUCT_GENDER', 'PRODUCT_CATEGORY', 'PRODUCT_TYPE',
+        self.item_fields = ['PRODUCT_GROUP', 'PRODUCT_GENDER', 'PRODUCT_CATEGORY', 'PRODUCT_TYPE',
                             'LACES', 'ZIPPER', 'SOLE_TYPE', 'SOLE_SUBTYPE', 'REMOVABLE_SOLE',
                             'COLOR_INTERN']
         self.items_attributes = self.eng_data[['PRODUCT_ID'] + self.item_fields].dropna(
@@ -98,10 +97,9 @@ class OneHotData(Data):
 
     def onehot(self):
         item_bools = ['LACES', 'ZIPPER', 'REMOVABLE_SOLE']
-        item_categoricals = ['PRODUCT_GROUP', 'CONCEPT', 'PRODUCT_GENDER',
+        item_categoricals = ['PRODUCT_GROUP', 'PRODUCT_GENDER',
                              'PRODUCT_CATEGORY', 'PRODUCT_TYPE', 'SOLE_TYPE',
-                             'SOLE_SUBTYPE', 'COLOR_INTERN'
-                             ]
+                             'SOLE_SUBTYPE', 'COLOR_INTERN']
 
         encoded = pd.get_dummies(data=self.items_attributes, columns=item_categoricals)
         encoded[item_bools] = encoded[item_bools] * 1
@@ -140,7 +138,7 @@ def user_invoice_item_dict(clean_df, ):
 
 
 if __name__ == '__main__':
-    infile = pd.read_csv(os.getcwd() + '/../data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
+    infile = pd.read_csv(os.getcwd() + '/data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
 
     testdata = infile#.head(500000)
 
@@ -148,15 +146,15 @@ if __name__ == '__main__':
 
     print('Item Matrix...')
     items = cleandata.item_df
-    items.to_csv(os.getcwd() + "/../data/item_m.csv", index=False)
+    items.to_csv(os.getcwd() + "/data/item_m.csv", index=False)
 
     print('User Matrix...')
     users = cleandata.user_df
-    users.to_csv(os.getcwd() + "/../data/user_m.csv")
+    users.to_csv(os.getcwd() + "/data/user_m.csv")
 
     print('User Invoice Item Dict ...')
     invoice_by_customer_dict, product_by_invoice_dict = user_invoice_item_dict(cleandata.eng_data)
-    with open(os.getcwd() + "/../data/invoice_by_customer_dict.json", "w") as outfile:
+    with open(os.getcwd() + "/data/invoice_by_customer_dict.json", "w") as outfile:
         json.dump(invoice_by_customer_dict, outfile)
-    with open(os.getcwd() + "/../data/product_by_invoice_dict.json", "w") as outfile:
+    with open(os.getcwd() + "/data/product_by_invoice_dict.json", "w") as outfile:
         json.dump(product_by_invoice_dict, outfile)
