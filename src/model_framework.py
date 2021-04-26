@@ -1,24 +1,29 @@
 from scipy.spatial import distance
 import numpy as np
 import random
+import pandas as pd
 
 
 class RecommenderFramework:
-    def __init__(self, user_df, item_df, user_item_df, user_id, item_id, min_item_n, min_trans_n,
+    def __init__(self, user_df, item_df, user_id, item_id, min_item_n, min_trans_n,
                  inv_by_cust_dict, prod_by_inv_dict):
-        self.user_df, self.item_df, self.user_item_df = user_df, item_df, user_item_df  # user, item & user-item matrix
+        self.user_df, self.item_df = user_df, item_df  # user, item & user-item matrix
         self.user_id, self.item_id = user_id, item_id  # columns that contains user & item identifiers
         self.min_item_n, self.min_trans_n = min_item_n, min_trans_n  # define the min# of trans and items to keep user
+
+        # index for cust, inv & prod (containing all users and item, also if excluded for learning, info is filtered
+        # respectively in self._identifiers())
         self.inv_by_cust_dict, self.prod_by_inv_dict = inv_by_cust_dict, prod_by_inv_dict
 
-        self._select_users()
-        self._identifiers()
+        self._select_users()  # calling user selection based on conditions
+        self._identifiers()  # calling user identifier init
 
     def _identifiers(self):
         """Create Identifier dicts for users & items to respective rows"""
-        # dict to index user identifier & row
-        self.user_dict, self.item_dict = {i: count for count, i in enumerate(self.user_df[self.user_id])},\
-                                         {i: count for count, i in enumerate(self.item_df[self.item_id])}
+        print('Customer Identifiers...')
+        # dict to index user identifier & row (this dict contains ONLY the users & items considered for the learning)
+        self.user_dict, self.item_dict = {i: count for count, i in enumerate(self.user_df[self.user_id].values)},\
+                                         {i: count for count, i in enumerate(self.item_df[self.item_id].values)}
         # drop identifier columns from original matrices
         self.user_df.drop([self.user_id], axis=1, inplace=True)
         self.item_df.drop([self.item_id], axis=1, inplace=True)
@@ -34,11 +39,18 @@ class RecommenderFramework:
         return distance.euclidean(u, v)
 
     @staticmethod
-    def _count_dist(u, v):
-        """Custom Similarity Measure that directly compares 0/1 matches of vectors"""
-        return np.round(sum(u * v) / ((len(u) == len(v))*len(u)), 4)
+    def _jaccard(u, v):
+        return distance.jaccard(u, v)
 
-    def eval(self, invoice_by_customer_dict, product_by_invoice_dict):
+    @staticmethod
+    def _count_dist(u, v, norm=True):
+        """Custom Similarity Measure that directly compares 0/1 matches of vectors"""
+        if norm:
+            return np.log((sum(u * v) / len(u)) + 1)
+        elif not norm:
+            return np.sum(u * v)
+
+    def eval(self):
         """Evaluate Recommendations based on validation set"""
         n = 1000  # number of evaluation iterations
         correctness = []
@@ -49,19 +61,19 @@ class RecommenderFramework:
             check_user_id = random.choice(list(self.user_dict.keys()))
 
             # random chose invoice that is attributed to user
-            check_invoice_id = random.choice(invoice_by_customer_dict[check_user_id])
+            check_invoice_id = random.choice(self.inv_by_cust_dict[check_user_id])
 
             # random chose product that the user purchased
-            check_product_id = random.choice(product_by_invoice_dict[str(check_invoice_id)])
+            check_product_id = random.choice(self.prod_by_inv_dict[str(check_invoice_id)])
 
             # get all other product ids that the user purchased
-            prod_id_list = [product_by_invoice_dict[str(i)] for i in invoice_by_customer_dict[check_user_id]]
+            prod_id_list = [self.prod_by_inv_dict[str(i)] for i in self.inv_by_cust_dict[check_user_id]]
             prod_id_list = list(np.concatenate(prod_id_list).flat)
             prod_id_list.remove(check_product_id)
 
             # get attributes from all other products purchased by the user
             item_indices = set([self.item_dict[item] for item in prod_id_list])
-            item_attributes = self.item_df.loc[item_indices, :]
+            item_attributes = self.item_df.iloc[list(item_indices), :]
 
             # aggregate attributes to user profile
             user_profile = item_attributes.max().drop(columns=['PRODUCT_ID'])
@@ -77,18 +89,32 @@ class RecommenderFramework:
         print(f'Accuracy: {np.sum(correctness)/len(correctness)*100}%')
         return
 
+    def _user_item_count(self, user):
+        return sum(list(map(lambda x: len(self.prod_by_inv_dict[str(x)]), self.inv_by_cust_dict[user])))
+
     def _select_users(self):
         """Filter Users for number of products and invoices as specified"""
+        print('Customer Filtering...')
         # filter users by minimum number of invoices in db using cust -> inv dict
-        users = [user for user in self.inv_by_cust_dict if
+        users = [user for user in self.user_df[self.user_id] if
                  len(self.inv_by_cust_dict[user]) >= self.min_trans_n]
 
-        # filter resulting users by number of purchased items
-        for user in users:  # iterate users (already filtered by # invoices)
-            items_per_user = []
-            for inv in self.inv_by_cust_dict[user]:  # iterate all invoices per user
-                items_per_user += self.prod_by_inv_dict[str(inv)]  # add all products to list
-            if len(items_per_user) < self.min_item_n:  # filter for condition
-                users.remove(user)
-        print(f'{len(users)/len(self.inv_by_cust_dict.keys())*100}% of all users.')
-        self.user_df = self.user_df[self.user_df[self.user_id].isin(users)]  # update users dataframe
+        # filter (already filtered) users by number of purchased products
+        n_items_df = pd.DataFrame({'users': users, 'n_items': list(map(lambda x: self._user_item_count(x), users))})
+        n_items_df = n_items_df[n_items_df['n_items'] >= self.min_item_n]
+
+        print(f'{np.round(len(n_items_df["users"])/len(self.inv_by_cust_dict.keys())*100, 3)}% of all users.')
+        self.user_df = self.user_df[self.user_df[self.user_id].isin(n_items_df['users'])]  # update users dataframe
+
+        # compute user-item dict
+        self.user_item_dict = {}
+        total_items = []
+        for user in self.user_df[self.user_id].values:
+            user_items = []
+            for inv in self.inv_by_cust_dict[user]:
+                user_items += self.prod_by_inv_dict[str(inv)]
+                total_items += self.prod_by_inv_dict[str(inv)]
+            self.user_item_dict[user] = set(user_items)
+        total_items = set(total_items)
+
+        self.item_df = self.item_df[self.item_df[self.item_id].isin(total_items)]  # update items dataframe
