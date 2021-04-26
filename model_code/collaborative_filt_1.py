@@ -2,6 +2,7 @@ import pandas as pd
 from src.model_framework import RecommenderFramework
 import json
 import numpy as np
+from scipy.spatial import distance
 
 
 class CollFilt(RecommenderFramework):
@@ -17,7 +18,7 @@ class CollFilt(RecommenderFramework):
         # Creating/ Importing User Similarity Matrix
         self.user_sim_matrix = None
         if imp_similarity:
-            self.user_sim_matrix = pd.read_csv("./data/user_sim_matrix.csv").to_numpy()
+            self.user_sim_matrix = pd.read_csv("../data/user_sim_matrix.csv").to_numpy()
         if not imp_similarity:
             self._user_sim_matrix()
 
@@ -46,18 +47,23 @@ class CollFilt(RecommenderFramework):
         self.user_item_m = np.zeros(shape=(len(self.user_dict.keys()), len(self.item_dict.keys())))
         for user in user_item_dict:
             self.user_item_m[self.user_dict[user], [self.item_dict[prod] for prod in self.user_item_dict[user]]] = 1
+        # pd.DataFrame(self.user_item_m).to_csv("../data/user_item_matrix.csv")
 
     def _user_sim_matrix(self):
         print('Generating User Similarity Matrix...')
         self.user_sim_matrix = np.zeros(shape=(len(self.user_dict), len(self.user_dict)))
         progress = 0
-        for count, user in enumerate(self.user_dict):
-            self.user_sim_matrix[self.user_dict[user], :] = [self._u_sim(user, u) for u in self.user_dict]
-            if np.round(count / len(self.user_dict), 2) == progress + .01:
-                progress += .01
-                print(f'{progress * 100}% done...')
-        pd.to_csv("./data/user_sim_matrix.csv", pd.DataFrame(self.user_sim_matrix))
-        print('Similarity Matrix Done & Saved!')
+
+        self.user_sim_matrix = distance.pdist(self.user_df.to_numpy(), lambda u, v: self._count_dist(u, v, norm=True))
+        self.user_sim_matrix = distance.squareform(self.user_sim_matrix)
+
+        # for count, user in enumerate(self.user_dict):
+        #     self.user_sim_matrix[self.user_dict[user], :] = [self._u_sim(user, u) for u in self.user_dict]
+        #     if np.round(count / len(self.user_dict), 2) == progress + .01:
+        #         progress += .01
+        #         print(f'{progress * 100}% done...')
+        # pd.DataFrame(self.user_sim_matrix).to_csv("./data/user_sim_matrix.csv")
+        # print('Similarity Matrix Done & Saved!')
 
     def _avg_user_relevance(self, u):
         return np.mean(self.user_item_m[self.user_dict[u], :])
@@ -82,6 +88,7 @@ class CollFilt(RecommenderFramework):
         """make recommendation for one user based on computed item scores"""
         not_purchased = [p for p in self.item_dict.keys() if p not in self.user_item_dict[user_id]]
         new_ratings = [self._cf_item_score(user_id, i) for i in not_purchased]
+
         rated = pd.DataFrame({'item': not_purchased, 'rating': new_ratings}).sort_values(by='rating', ascending=False)
         return rated.iloc[:n, 0]
 
@@ -104,6 +111,7 @@ if __name__ == '__main__':
                    imp_similarity=False)
 
     rec.make_recommendation(user_id='//VNwGkmnK8q2RMfoYb0dqUuGJNfP+hNs5117i4DtYw=')
+
     # rec.eval()
 
     print('hello world')

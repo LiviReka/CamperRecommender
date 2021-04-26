@@ -46,7 +46,7 @@ class RecommenderFramework:
     def _count_dist(u, v, norm=True):
         """Custom Similarity Measure that directly compares 0/1 matches of vectors"""
         if norm:
-            return np.round(sum(u * v) / ((len(u) == len(v))*len(u)), 4)
+            return np.log((sum(u * v) / len(u)) + 1)
         elif not norm:
             return np.sum(u * v)
 
@@ -73,7 +73,7 @@ class RecommenderFramework:
 
             # get attributes from all other products purchased by the user
             item_indices = set([self.item_dict[item] for item in prod_id_list])
-            item_attributes = self.item_df.loc[item_indices, :]
+            item_attributes = self.item_df.iloc[list(item_indices), :]
 
             # aggregate attributes to user profile
             user_profile = item_attributes.max().drop(columns=['PRODUCT_ID'])
@@ -117,4 +117,4 @@ class RecommenderFramework:
             self.user_item_dict[user] = set(user_items)
         total_items = set(total_items)
 
-        self.item_df = self.item_df[self.item_df[self.item_id].isin(total_items)]  # update users dataframe
+        self.item_df = self.item_df[self.item_df[self.item_id].isin(total_items)]  # update items dataframe
