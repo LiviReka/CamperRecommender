@@ -38,7 +38,6 @@ class Data:
 
     def to_english(self):
         d_copy = self.data_in.rename(columns=self.english_cols)
-        d_copy['REMOVABLE_SOLE'] = d_copy['REMOVABLE_SOLE'].apply(lambda x: True if x == 'Extraible' else False)
 
         invoice_id_dict = {'ZTON': 'Sale', 'ZDVN': 'Return', 'ZDAN': 'Cancelled Return'}
         d_copy['INVOICE_DOCUMENT_CLASS_ID'] = d_copy['INVOICE_DOCUMENT_CLASS_ID'].apply(lambda x: invoice_id_dict[x])
@@ -65,10 +64,11 @@ class Data:
         d.ZIPPER = d.ZIPPER.apply(lambda x: True if x in ('SI', 'YES') else False)
         d.LACES = d.LACES.apply(lambda x: True if x in ('With laces', 'Con cordones') else False)
         d.PHYSICAL_CONTACT = d.PHYSICAL_CONTACT.apply(lambda x: True if x == 'S' else False)
+        d.REMOVABLE_SOLE = d.REMOVABLE_SOLE.apply(lambda x: True if x == 'Extraible' else False)
         return d
 
     def preprocess(self, d):
-        d['INVOICE_DATE'] = pd.to_datetime(d.INVOICE_DATE)
+        d.INVOICE_DATE = pd.to_datetime(d.INVOICE_DATE)
         d.AGE_AT_PURCHASE = d.AGE_AT_PURCHASE.replace(0, np.nan)
         d.SEASON_DESC = d.SEASON_DESC.apply(lambda x: "".join(re.split('^\d{2}|\W+', x)))
         d.SOLE_SUBTYPE = d.SOLE_SUBTYPE.apply(lambda x: np.nan if pd.isnull(x) else "".join(re.split('\(.*\)', x)))
@@ -140,7 +140,7 @@ def user_invoice_item_dict(clean_df, ):
 if __name__ == '__main__':
     infile = pd.read_csv(os.getcwd() + '/data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
 
-    testdata = infile#.head(500000)
+    testdata = infile.head(500000)
 
     cleandata = OneHotData(testdata)
 
