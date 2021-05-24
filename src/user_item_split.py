@@ -137,24 +137,40 @@ def user_invoice_item_dict(clean_df, ):
     return invoice_by_customer_dict, product_by_invoice_dict
 
 
+def get_buyer_frequency(data):
+    customer_frequency = data.value_counts('CUSTOMER_ID')
+    customer_frequency = customer_frequency.to_frame().rename(columns={0: 'buyer_frequency'})
+    data = data.merge(customer_frequency, left_on='CUSTOMER_ID', right_on='CUSTOMER_ID')
+    multiple_orders = data.loc[data.buyer_frequency > 1].copy()
+    single_orders = data.loc[data.buyer_frequency == 1].copy()
+    multiple_orders['buy_freq_group'] = pd.qcut(multiple_orders["buyer_frequency"], 4, precision=0, labels=[2, 3, 4, 5])
+    single_orders['buy_freq_group'] = 1
+    return pd.concat([multiple_orders, single_orders])
+
+
 if __name__ == '__main__':
     infile = pd.read_csv(os.getcwd() + '/data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
 
-    testdata = infile.head(500000)
+    testdata = infile  # .sample(frac=0.6)
+    testdata = get_buyer_frequency(testdata)
 
-    cleandata = OneHotData(testdata)
+    for i in range(1, 6):
+        print('Generating matrices for group ', i)
+        testdata_group = testdata[testdata.buy_freq_group == i]
 
-    print('Item Matrix...')
-    items = cleandata.item_df
-    items.to_csv(os.getcwd() + "/data/item_m.csv", index=False)
+        cleandata = OneHotData(testdata_group)
 
-    print('User Matrix...')
-    users = cleandata.user_df
-    users.to_csv(os.getcwd() + "/data/user_m.csv")
+        print('Item Matrix...')
+        items = cleandata.item_df
+        items.to_csv(os.getcwd() + f"/data/group{i}/item_m.csv", index=False)
 
-    print('User Invoice Item Dict ...')
-    invoice_by_customer_dict, product_by_invoice_dict = user_invoice_item_dict(cleandata.eng_data)
-    with open(os.getcwd() + "/data/invoice_by_customer_dict.json", "w") as outfile:
-        json.dump(invoice_by_customer_dict, outfile)
-    with open(os.getcwd() + "/data/product_by_invoice_dict.json", "w") as outfile:
-        json.dump(product_by_invoice_dict, outfile)
+        print('User Matrix...')
+        users = cleandata.user_df
+        users.to_csv(os.getcwd() + f"/data/group{i}/user_m.csv")
+
+        print('User Invoice Item Dict ...')
+        invoice_by_customer_dict, product_by_invoice_dict = user_invoice_item_dict(cleandata.eng_data)
+        with open(os.getcwd() + f"/data/group{i}/invoice_by_customer_dict.json", "w") as outfile:
+            json.dump(invoice_by_customer_dict, outfile)
+        with open(os.getcwd() + f"/data/group{i}/product_by_invoice_dict.json", "w") as outfile:
+            json.dump(product_by_invoice_dict, outfile)
