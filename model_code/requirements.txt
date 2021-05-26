@@ -1,0 +1,7 @@
+scipy==1.5.2
+tensorboard==2.5.0
+tensorflow==2.5.0
+pandas==1.2.4
+numpy==1.19.5
+lightfm==1.16
+auto_mix_prep==0.2.0
