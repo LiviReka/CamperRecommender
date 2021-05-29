@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-data = pd.read_csv('./data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
+data = pd.read_csv('../data/Consumidor_Venta_Producto_UPC_Recom_2018_2020.csv')
 
 print(f'Number of Observations: {len(data)}')
 print(f'Number of Features: {len(data.columns)}')
