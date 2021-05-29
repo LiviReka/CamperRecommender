@@ -1,6 +1,7 @@
 import pandas as pd
 from src.model_framework import RecommenderFramework
 import json
+import os
 import numpy as np
 from scipy.spatial import distance
 
@@ -15,12 +16,12 @@ class CollFilt(RecommenderFramework):
         self.user_item_m = None  # collecting user-item pair relevance
         self._user_item_matrix()  # create user-item matrix on object initialization
 
-        # Creating/ Importing User Similarity Matrix
-        self.user_sim_matrix = None
-        if imp_similarity:
-            self.user_sim_matrix = pd.read_csv("../data/user_sim_matrix.csv").to_numpy()
-        if not imp_similarity:
-            self._user_sim_matrix()
+        # # Creating/ Importing User Similarity Matrix
+        # self.user_sim_matrix = None
+        # if imp_similarity:
+        #     self.user_sim_matrix = pd.read_csv("../data/user_sim_matrix.csv").to_numpy()
+        # if not imp_similarity:
+        #     self._user_sim_matrix()
 
     def _user_item_relevance(self, cust_id, prod_id):
         """computing relevance score for one user-item pair"""
@@ -47,7 +48,6 @@ class CollFilt(RecommenderFramework):
         self.user_item_m = np.zeros(shape=(len(self.user_dict.keys()), len(self.item_dict.keys())))
         for user in user_item_dict:
             self.user_item_m[self.user_dict[user], [self.item_dict[prod] for prod in self.user_item_dict[user]]] = 1
-        # pd.DataFrame(self.user_item_m).to_csv("../data/user_item_matrix.csv")
 
     def _user_sim_matrix(self):
         print('Generating User Similarity Matrix...')
@@ -94,24 +94,28 @@ class CollFilt(RecommenderFramework):
 
 
 if __name__ == '__main__':
-    user_m = pd.read_csv('../data/user_m.csv')
-    item_m = pd.read_csv('../data/item_m.csv')
-    cleandata_m = pd.read_csv('../data/cleandata.csv')
 
-    with open('../data/invoice_by_customer_dict.json') as json_file:
-        invoice_by_customer_dict = json.load(json_file)
+    for i in range(1, 6):
+        print('Generating matrices for group ', i)
 
-    with open('../data/product_by_invoice_dict.json') as json_file:
-        product_by_invoice_dict = json.load(json_file)
+        user_m = pd.read_csv(os.getcwd() + f"/../data/group{i}/user_m.csv")
+        item_m = pd.read_csv(os.getcwd() + f"/../data/group{i}/item_m.csv")
+        #cleandata_m = pd.read_csv('../data/cleandata.csv')
 
-    print('initializing model')
+        with open(os.getcwd() + f"/../data/group{i}/invoice_by_customer_dict.json") as json_file:
+            invoice_by_customer_dict = json.load(json_file)
 
-    rec = CollFilt(user_df=user_m, item_df=item_m, user_id='CUSTOMER_ID', item_id='PRODUCT_ID', min_trans_n=5,
-                   min_item_n=5, inv_by_cust_dict=invoice_by_customer_dict, prod_by_inv_dict=product_by_invoice_dict,
-                   imp_similarity=False)
+        print('initializing model')
 
-    rec.make_recommendation(user_id='//VNwGkmnK8q2RMfoYb0dqUuGJNfP+hNs5117i4DtYw=')
+        rec = CollFilt(user_df=user_m, item_df=item_m, user_id='CUSTOMER_ID', item_id='PRODUCT_ID', min_trans_n=1,
+                       min_item_n=1, inv_by_cust_dict=invoice_by_customer_dict, prod_by_inv_dict=product_by_invoice_dict,
+                       imp_similarity=False)
 
-    # rec.eval()
+        pd.DataFrame(rec.user_item_m).to_csv(os.getcwd() + f"/../data/group{i}/user_item_m.csv")
+        # rec.user_sim_matrix.to_csv(os.getcwd() + f"/../data/group{i}/user_sim_m.csv", index=False)
 
-    print('hello world')
+    # rec.make_recommendation(user_id='//VNwGkmnK8q2RMfoYb0dqUuGJNfP+hNs5117i4DtYw=')
+    #
+    # # rec.eval()
+    #
+    # print('hello world')
