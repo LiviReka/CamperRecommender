@@ -48,7 +48,6 @@ class CollFilt(RecommenderFramework):
         self.user_item_m = np.zeros(shape=(len(self.user_dict.keys()), len(self.item_dict.keys())))
         for user in user_item_dict:
             self.user_item_m[self.user_dict[user], [self.item_dict[prod] for prod in self.user_item_dict[user]]] = 1
-        #pd.DataFrame(self.user_item_m).to_csv("../data/user_item_matrix.csv")
 
     def _user_sim_matrix(self):
         print('Generating User Similarity Matrix...')
@@ -106,10 +105,7 @@ if __name__ == '__main__':
         with open(os.getcwd() + f"/../data/group{i}/invoice_by_customer_dict.json") as json_file:
             invoice_by_customer_dict = json.load(json_file)
 
-        with open(os.getcwd() + f"/../data/group{i}/product_by_invoice_dict.json") as json_file:
-            product_by_invoice_dict = json.load(json_file)
-
-            print('initializing model')
+        print('initializing model')
 
         rec = CollFilt(user_df=user_m, item_df=item_m, user_id='CUSTOMER_ID', item_id='PRODUCT_ID', min_trans_n=1,
                        min_item_n=1, inv_by_cust_dict=invoice_by_customer_dict, prod_by_inv_dict=product_by_invoice_dict,
