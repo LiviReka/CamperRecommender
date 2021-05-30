@@ -1,0 +1,12 @@
+# pre-installation:
+# https://phoenixnap.com/kb/how-to-install-python-3-ubuntu
+
+# to use on EC2: sudo -H pip3 install -r requirements.txt --no-cache-dir
+
+scipy
+tensorboard
+tensorflow
+pandas
+numpy
+lightfm
+auto_mix_prep
