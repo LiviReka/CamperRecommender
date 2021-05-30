@@ -1,7 +1,12 @@
-scipy==1.5.2
-tensorboard==2.5.0
-tensorflow==2.5.0
-pandas==1.2.4
-numpy==1.19.5
-lightfm==1.16
-auto_mix_prep==0.2.0
+# pre-installation:
+# https://phoenixnap.com/kb/how-to-install-python-3-ubuntu
+
+# to use on EC2: sudo -H pip3 install -r requirements.txt --no-cache-dir
+
+scipy
+tensorboard
+tensorflow
+pandas
+numpy
+lightfm
+auto_mix_prep
