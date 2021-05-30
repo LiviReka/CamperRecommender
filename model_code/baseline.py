@@ -6,6 +6,11 @@ import implicit
 from sklearn import metrics
 import matplotlib.pyplot as plt
 
+from model_code.bayesian_opt.bayesian_opt import BayesianOptEI
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF
+
+
 def auc_score(y, y_hat):
     return metrics.roc_auc_score(y, y_hat)
 
@@ -39,7 +44,7 @@ class BaselineImplicit:
 
         self.model_fact = model_fact  # number of latent factors in the model
         self.model_iter = model_iter  # number of als iterations
-        self.n_recs = n_recs  # number of recommendations per user # TODO: flexible approach to choosing number of recommendations
+        self.n_recs = n_recs  # number of recommendations per user
 
         self.model = self._init_model()  # train implicit model
 
@@ -68,6 +73,7 @@ class BaselineImplicit:
         vals = list(self.transactions_filtered['feedback'])
         sp = sparse.csr_matrix((vals, (rows, cols)), shape=(len(self.cust_dict), len(self.prod_dict)))
         # pd.DataFrame(sp.todense()).to_csv('uim.csv')
+        # sp = sparse.csr_matrix(sp.todense() * 40 + 1)
         return sp
 
     def _make_train(self, pct_test=0.01):
@@ -82,12 +88,13 @@ class BaselineImplicit:
         random.seed(0)  # Set the random seed to zero for reproducibility
         num_samples = int(
             np.ceil(pct_test * len(nonzero_pairs)))  # Round the number of samples needed to the nearest integer
-        samples = random.sample(nonzero_pairs,
-                                num_samples)  # Sample a random number of user-item pairs without replacement
+        samples = random.sample(nonzero_pairs, num_samples)  # Sample a random number of user-item pairs without replacement
         user_inds = [index[0] for index in samples]  # Get the user row indices
         item_inds = [index[1] for index in samples]  # Get the item column indices
         training_set[user_inds, item_inds] = 0  # Assign all of the randomly chosen user-item pairs to zero
         training_set.eliminate_zeros()  # Get rid of zeros in sparse array storage after update to save space
+
+        # training_set = sparse.csr_matrix(training_set.todense() * 40 + 1) # adding confidence level to sparse training
         return training_set, test_set, list(set(user_inds))  # Output the unique list of user rows that were altered
 
     def _init_model(self):
@@ -117,9 +124,16 @@ class BaselineImplicit:
 
     def eval(self):
         """Evaluating the recommendations by letting the model recommend on masked users"""
+        # recommendations = self.model.recommend_all(user_items=self.tr, N=5, filter_already_liked_items=True)
+
         for count, i in enumerate(self.masked_uid):
             y_star = self.te[i].toarray().flatten()  # extract true user item array
+
             y_hat = self.ranking(user=i, n_recs=self.n_recs)  # gives boolean user product array indicating recs
+
+            # rec_i = recommendations[i, :]
+            # y_hat = np.zeros(len(y_star))
+            # y_hat[rec_i] = 1
 
             self.auc = sequential_mean(old=self.auc, new=auc_score(y=y_star, y_hat=y_hat), iteration=count + 1)
             self.precision = sequential_mean(old=self.precision, new=precision_score(y=y_star, y_hat=y_hat),
@@ -163,6 +177,14 @@ class BaselinePopularity(BaselineImplicit):
         return
 
 
+def optim_objective(x, min_items=5, max_items=50, n_recs=5):
+    """Objective Function for bayesian hyperparameter tuning"""
+    model = BaselineImplicit(transactions=grouped_purchased, min_items=min_items,
+                             max_items=max_items, n_recs=n_recs, model_fact=x, model_iter=2)
+    auc, precision, recall, f1 = model.eval()
+    return recall  # np.random.randint(low=0, high=50, size=1)
+
+
 if __name__ == '__main__':
     # user item combinations df
     cleandata_m = pd.read_csv('../data/cleandata.csv')
@@ -171,18 +193,29 @@ if __name__ == '__main__':
     cleandata_m.columns = ['customer_id', 'product_id', 'feedback']
     grouped_purchased = cleandata_m.groupby(by=['customer_id', 'product_id']).sum().reset_index()
 
+    X = np.array([50, 500, 1000])
+    bounds = [(50, 2000)]
+
+    model = BayesianOptEI(X=X, model=GaussianProcessRegressor(kernel=RBF()), exploration=1e-1, n_target_obs=100,
+                          objective_f=optim_objective, objective_bounds=bounds)
+    opt, xs, ys = model.optimize()
+
+    plt.plot(np.array(xs).flatten(), np.array(ys).flatten())
+    plt.show()
+
     ## Testing for factor size
     # auc_l, precision_l, recall_l, f1_l = [], [], [], []
-    # lis = [50, 100, 200, 400, 800, 1000]
+    # lis = [1000]  #[50, 100, 200, 400, 800, 1000]
     # for i in lis:
-    #     model = BaselinePopularity(transactions=grouped_purchased, min_items=5, max_items=50, n_recs=5)
+    #     model = BaselineImplicit(transactions=grouped_purchased, min_items=5, max_items=50, n_recs=5,
+    #                              model_fact=1000, model_iter=5)
     #
     #     auc, precision, recall, f1 = model.eval()
     #     auc_l.append(auc)
     #     precision_l.append(precision)
     #     recall_l.append(recall)
     #     f1_l.append(f1)
-    #
+
     # plt.title('Testing for Factor Size')
     # plt.xticks(np.arange(len(lis)), lis)
     # plt.plot(auc_l, label='AUC')
@@ -192,71 +225,7 @@ if __name__ == '__main__':
     # plt.legend()
     # plt.show()
 
-    # Testing for n recs
-    auc_l, precision_l, recall_l, f1_l = [], [], [], []
-    lis = [2, 5, 8, 10, 15, 20]
-    for i in lis:
-        model = BaselinePopularity(transactions=grouped_purchased,
-                                  min_items=5, max_items=50, n_recs=i)
-
-        auc, precision, recall, f1 = model.eval()
-        auc_l.append(auc)
-        precision_l.append(precision)
-        recall_l.append(recall)
-        f1_l.append(f1)
-
-    plt.title('Testing for Number of Recommendations')
-    plt.xticks(np.arange(len(lis)), lis)
-    plt.plot(auc_l, label='AUC')
-    plt.plot(precision_l, label='Precision')
-    plt.plot(recall_l, label='Recall')
-    plt.plot(f1_l, label='F1')
-    plt.legend()
-    plt.show()
-
-    #
-    # ## Testing for min items
-    # auc_l, precision_l, recall_l, f1_l = [], [], [], []
-    # lis = [2, 5, 8, 10, 15, 20]
-    # for i in lis:
-    #     model = BaselineImplicit(transactions=grouped_purchased, model_fact=500, model_iter=15,
-    #                               min_items=i, max_items=50, n_recs=5)
-    #
-    #     auc, precision, recall, f1 = model.eval()
-    #     auc_l.append(auc)
-    #     precision_l.append(precision)
-    #     recall_l.append(recall)
-    #     f1_l.append(f1)
-    #
-    # plt.title('Testing for Min Items')
-    # plt.xticks(np.arange(len(lis)), lis)
-    # plt.plot(auc_l, label='AUC')
-    # plt.plot(precision_l, label='Precision')
-    # plt.plot(recall_l, label='Recall')
-    # plt.plot(f1_l, label='F1')
-    # plt.legend()
-    # plt.show()
-    #
-    # ## Testing for max items
-    # auc_l, precision_l, recall_l, f1_l = [], [], [], []
-    # lis = [10, 20, 40, 80, 100, 150, 200]
-    # for i in lis:
-    #     model = BaselineImplicit(transactions=grouped_purchased, model_fact=500, model_iter=15,
-    #                               min_items=5, max_items=i, n_recs=5)
-    #
-    #     auc, precision, recall, f1 = model.eval()
-    #     auc_l.append(auc)
-    #     precision_l.append(precision)
-    #     recall_l.append(recall)
-    #     f1_l.append(f1)
-    #
-    # plt.title('Testing for Max Items')
-    # plt.xticks(np.arange(len(lis)), lis)
-    # plt.plot(auc_l, label='AUC')
-    # plt.plot(precision_l, label='Precision')
-    # plt.plot(recall_l, label='Recall')
-    # plt.plot(f1_l, label='F1')
-    # plt.legend()
-    # plt.show()
-
     print('hello world')
+
+# <7607x40529 sparse matrix of type '<class 'numpy.int64'>'
+# 	with 308304103 stored elements in Compressed Sparse Column format>
