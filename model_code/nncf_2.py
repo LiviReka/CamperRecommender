@@ -1,13 +1,5 @@
 
-import sys
-
-import numpy as np
 import pandas as pd
-import tensorflow as tf
-
-import tensorflow.keras as keras
-
-
 
 df_test = pd.read_csv('df_test.csv')
 df_test.pivot(index="user_id", columns="item_id", values="ncf_predictions").values.shape
