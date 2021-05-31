@@ -12,7 +12,7 @@ def se(y, yhat):
 
 
 class BayesianOpt:
-    def __init__(self, X, model, exploration, objective_f, objective_bounds, n_target_obs=100):
+    def __init__(self, X, model, exploration, objective_f, objective_bounds, n_target_obs):
         self.objective_f = objective_f
 
         self.X = X.reshape(1, -1)  # Initialized x values
@@ -57,7 +57,7 @@ class BayesianOpt:
                 res = minimize(self._acquisition, x_cand, method='L-BFGS-B', bounds=self.objective_bounds)
                 if res.success and res.fun < best:
                     best = res.fun
-                    new_x = res.x
+                    new_x = res.x.astype('int')
                 if not res.success:
                     new_x = self.X[:, -1] + 1e-1
 
@@ -72,6 +72,8 @@ class BayesianOpt:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 self.surr_model.fit(self.X.T, self.y)
+
+            print(f'#### OPTIMIZATION PROGRESS: {i / self.n_target_obs*100}%')
         best = np.argmin(self.y)
         return (self.X[:, best], self.y[best]), xs, ys
 
@@ -105,8 +107,8 @@ class BayesianOptUCB(BayesianOpt):
 
 
 class BayesianOptEI(BayesianOpt):
-    def __init__(self, X, model, exploration, objective_f, objective_bounds, n_target_obs=100):
-        super().__init__(X, model, exploration, objective_f, objective_bounds)
+    def __init__(self, X, model, exploration, objective_f, objective_bounds, n_target_obs):
+        super().__init__(X, model, exploration, objective_f, objective_bounds, n_target_obs)
 
     def _acquisition(self, x_new):
         """The acquisition function evaluates which sample area is to be explored next: UCB"""
