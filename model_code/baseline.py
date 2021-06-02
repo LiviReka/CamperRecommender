@@ -67,7 +67,7 @@ class BaselineImplicit:
         cols = [self.prod_dict[i] for i in self.transactions_filtered['product_id']]
         vals = list(self.transactions_filtered['feedback'])
         sp = sparse.csr_matrix((vals, (rows, cols)), shape=(len(self.cust_dict), len(self.prod_dict)))
-        # pd.DataFrame(sp.todense()).to_csv('uim.csv')
+        pd.DataFrame(sp.todense()).to_csv('uim.csv')
         return sp
 
     def _make_train(self, pct_test=0.01):
